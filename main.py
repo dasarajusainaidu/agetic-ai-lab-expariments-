@@ -1,65 +1,54 @@
-from src.chain import run_chain
+from tools.database_tool import initialize_database
+from tools.schema_tool import get_schema
+from agent.graph import run_agent
 
 
 def main():
 
     print("=" * 60)
-    print("             PROMPT CHAINING SYSTEM")
+    print("           SQL AGENT WITH TOOL USE")
     print("=" * 60)
 
-    print("\nEnter text to analyze.")
-    print("Type 'END' on a new line when finished.")
-    print("Type 'exit' to quit.\n")
+    initialize_database()
+
+    print("\nDatabase initialized.")
+
+    print("\nAvailable schema:")
+    print("-" * 60)
+    print(get_schema())
+
+    print("\nType 'exit' to quit.")
 
     while True:
 
-        lines = []
+        question = input(
+            "\nAsk the SQL Agent: "
+        ).strip()
 
-        while True:
+        if question.lower() == "exit":
 
-            line = input()
+            print("Exiting...")
 
-            if line.lower() == "exit":
-                return
+            break
 
-            if line == "END":
-                break
-
-            lines.append(line)
-
-        text = "\n".join(lines).strip()
-
-        if not text:
-            print("No text provided.")
+        if not question:
             continue
 
         try:
 
-            result = run_chain(text)
+            state = run_agent(
+                question
+            )
 
             print("\n" + "=" * 60)
-            print("STEP 1 — EXTRACTED INFORMATION")
+            print("FINAL ANSWER")
             print("=" * 60)
-            print(result["information"])
 
-            print("\n" + "=" * 60)
-            print("STEP 2 — ANALYSIS")
-            print("=" * 60)
-            print(result["analysis"])
-
-            print("\n" + "=" * 60)
-            print("STEP 3 — SUMMARY")
-            print("=" * 60)
-            print(result["summary"])
-
-            print("\n" + "=" * 60)
-            print("STEP 4 — FINAL OUTPUT")
-            print("=" * 60)
-            print(result["final_output"])
+            print(state.answer)
 
         except Exception as error:
 
-            print("\nERROR:")
+            print("\nAGENT ERROR:")
             print(error)
 
 
