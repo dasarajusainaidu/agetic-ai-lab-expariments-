@@ -1,109 +1,66 @@
-from src.loader import load_documents
-from src.chunker import create_chunks
-from src.embeddings import EmbeddingModel
-from src.retriever import VectorRetriever
-from src.generator import generate_answer
+from src.chain import run_chain
 
 
 def main():
 
     print("=" * 60)
-    print("        RAG QUESTION ANSWERING SYSTEM")
+    print("             PROMPT CHAINING SYSTEM")
     print("=" * 60)
 
-    # ----------------------------
-    # Load documents
-    # ----------------------------
-
-    print("\nLoading documents...")
-
-    documents = load_documents("data")
-
-    print(
-        f"Loaded {len(documents)} documents."
-    )
-
-    # ----------------------------
-    # Create chunks
-    # ----------------------------
-
-    print("\nCreating chunks...")
-
-    chunks = create_chunks(documents)
-
-    print(
-        f"Created {len(chunks)} chunks."
-    )
-
-    # ----------------------------
-    # Embedding model
-    # ----------------------------
-
-    embedding_model = EmbeddingModel()
-
-    # ----------------------------
-    # Build vector database
-    # ----------------------------
-
-    retriever = VectorRetriever(
-        embedding_model
-    )
-
-    retriever.build_index(chunks)
-
-    print("\nRAG system ready.")
-
-    print("Type 'exit' to quit.")
-
-    # ----------------------------
-    # Question answering
-    # ----------------------------
+    print("\nEnter text to analyze.")
+    print("Type 'END' on a new line when finished.")
+    print("Type 'exit' to quit.\n")
 
     while True:
 
-        question = input(
-            "\nAsk a question: "
-        ).strip()
+        lines = []
 
-        if question.lower() == "exit":
+        while True:
 
-            print("Exiting...")
+            line = input()
 
-            break
+            if line.lower() == "exit":
+                return
 
-        if not question:
+            if line == "END":
+                break
+
+            lines.append(line)
+
+        text = "\n".join(lines).strip()
+
+        if not text:
+            print("No text provided.")
             continue
 
-        # Retrieve relevant chunks
+        try:
 
-        print("\nRetrieving relevant information...")
+            result = run_chain(text)
 
-        results = retriever.search(
-            question,
-            top_k=3
-        )
+            print("\n" + "=" * 60)
+            print("STEP 1 — EXTRACTED INFORMATION")
+            print("=" * 60)
+            print(result["information"])
 
-        print("\nRetrieved sources:")
+            print("\n" + "=" * 60)
+            print("STEP 2 — ANALYSIS")
+            print("=" * 60)
+            print(result["analysis"])
 
-        for result in results:
+            print("\n" + "=" * 60)
+            print("STEP 3 — SUMMARY")
+            print("=" * 60)
+            print(result["summary"])
 
-            print(
-                f"- {result['source']} "
-                f"(score: {result['score']:.3f})"
-            )
+            print("\n" + "=" * 60)
+            print("STEP 4 — FINAL OUTPUT")
+            print("=" * 60)
+            print(result["final_output"])
 
-        # Generate answer
+        except Exception as error:
 
-        print("\nGenerating answer...")
-
-        answer = generate_answer(
-            question,
-            results
-        )
-
-        print("\nAnswer:")
-        print("-" * 60)
-        print(answer)
+            print("\nERROR:")
+            print(error)
 
 
 if __name__ == "__main__":
