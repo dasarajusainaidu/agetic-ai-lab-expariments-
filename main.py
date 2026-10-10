@@ -1,69 +1,109 @@
-from src.database import initialize_database
-from src.schema import get_database_schema
-from src.sql_generator import generate_sql
-from src.executor import execute_sql
+from src.loader import load_documents
+from src.chunker import create_chunks
+from src.embeddings import EmbeddingModel
+from src.retriever import VectorRetriever
+from src.generator import generate_answer
 
 
 def main():
 
     print("=" * 60)
-    print("        TEXT-TO-SQL LLM SYSTEM")
+    print("        RAG QUESTION ANSWERING SYSTEM")
     print("=" * 60)
 
-    # Create database
-    initialize_database()
+    # ----------------------------
+    # Load documents
+    # ----------------------------
 
-    # Get database schema
-    schema = get_database_schema()
+    print("\nLoading documents...")
 
-    print("\nDatabase Schema:")
-    print("-" * 60)
-    print(schema)
+    documents = load_documents("data")
 
-    print("\nType 'exit' to quit.")
+    print(
+        f"Loaded {len(documents)} documents."
+    )
+
+    # ----------------------------
+    # Create chunks
+    # ----------------------------
+
+    print("\nCreating chunks...")
+
+    chunks = create_chunks(documents)
+
+    print(
+        f"Created {len(chunks)} chunks."
+    )
+
+    # ----------------------------
+    # Embedding model
+    # ----------------------------
+
+    embedding_model = EmbeddingModel()
+
+    # ----------------------------
+    # Build vector database
+    # ----------------------------
+
+    retriever = VectorRetriever(
+        embedding_model
+    )
+
+    retriever.build_index(chunks)
+
+    print("\nRAG system ready.")
+
+    print("Type 'exit' to quit.")
+
+    # ----------------------------
+    # Question answering
+    # ----------------------------
 
     while True:
 
-        question = input("\nAsk a database question: ").strip()
+        question = input(
+            "\nAsk a question: "
+        ).strip()
 
         if question.lower() == "exit":
+
             print("Exiting...")
+
             break
 
         if not question:
             continue
 
-        try:
+        # Retrieve relevant chunks
 
-            print("\nGenerating SQL...")
+        print("\nRetrieving relevant information...")
 
-            sql = generate_sql(
-                question,
-                schema
+        results = retriever.search(
+            question,
+            top_k=3
+        )
+
+        print("\nRetrieved sources:")
+
+        for result in results:
+
+            print(
+                f"- {result['source']} "
+                f"(score: {result['score']:.3f})"
             )
 
-            print("\nGenerated SQL:")
-            print("-" * 60)
-            print(sql)
+        # Generate answer
 
-            print("\nExecuting SQL...")
+        print("\nGenerating answer...")
 
-            results = execute_sql(sql)
+        answer = generate_answer(
+            question,
+            results
+        )
 
-            print("\nResults:")
-            print("-" * 60)
-
-            if not results:
-                print("No results found.")
-
-            else:
-                for row in results:
-                    print(row)
-
-        except Exception as error:
-
-            print("\nERROR:")
-            print(error)
+        print("\nAnswer:")
+        print("-" * 60)
+        print(answer)
 
 
 if __name__ == "__main__":
